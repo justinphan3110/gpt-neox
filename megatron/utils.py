@@ -82,7 +82,9 @@ def make_segment_mask(
 
     # equality comparison between [b, 1, sq, 1] and [b, 1, 1, sk]. which should broadcast to [b, 1, sq, sk]
     mask = (query[:, None, :, None] == key[:, None, None, :]).bool().to(device)
-
+    # should not attend to padding
+    mask = mask & ((query[:, None, :, None] != 0) & (key[:, None, None, :] != 0))
+    
     return mask
 
 
@@ -99,13 +101,13 @@ def get_full_mask(src_length, target_length, device):
     return mask < 0.5
 
 
-def get_attn_mask(seq_length, device):
+def get_attn_mask(seq_length, device, batch_size=1):
     """
     Get triangular attention mask for a given sequence length / device.
     """
     # lower triangular attention mask
-    mask = torch.tril(torch.ones((1, seq_length, seq_length), device=device)).view(
-        1, 1, seq_length, seq_length
+    mask = torch.tril(torch.ones((batch_size, seq_length, seq_length), device=device)).view(
+        batch_size, 1, seq_length, seq_length
     )
 
     # convert to binary
@@ -129,6 +131,7 @@ def get_ltor_masks_and_position_ids(
     attention_mask = get_attn_mask(
         seq_length=seq_length,
         device=data.device,
+        batch_size=batch_size,
     )
 
     # Loss mask.
@@ -138,13 +141,19 @@ def get_ltor_masks_and_position_ids(
 
     if pad_mask_loss:
         loss_mask[data == pad_token] = 0.0
-
+    # do not attend to padding tokens
+    #print(data[:,None,None,:] == pad_token)
+    #attention_mask = attention_mask.bool() & ~(data[:,None,None,:] == pad_token).bool()
+    #print(attention_mask)
     if segment_ids is not None: # do attention masking s.t. only sequences of the same segment id attend to one another
         segment_mask = make_segment_mask(
             segment_ids, segment_ids, device=data.device
         ) 
+        #padding_mask = make_segment_mask(
+        #    segment_ids != 0, segment_ids != 0, device=data.device
+        #)
 
-        attention_mask = attention_mask.bool() & segment_mask.bool()
+        attention_mask = attention_mask.bool() & segment_mask.bool() #& padding_mask.bool()
 
         return attention_mask, loss_mask
     else:

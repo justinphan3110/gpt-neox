@@ -223,6 +223,11 @@ def _get_batch_encdec(neox_args, keys, data, datatype):
     tokens_dec = torch.full(labels.size(), neox_args.tokenizer.pad, device=labels.device).contiguous()
     tokens_dec[:, 1:] = labels[:, 1:].clone()
 
+    #labels = tokens_dec_[:, 1:].contiguous()
+    #tokens_dec = tokens_dec_[:, :-1].contiguous()
+    #print(torch.where((tokens_enc == 1)))
+    #if neox_args.rank == 0:
+       # print(torch.sum(tokens_enc == 1), torch.sum(tokens_dec == 1))
     batch_size, src_length = tokens_enc.size()
     batch_size, target_length = tokens_dec.size()
 
@@ -232,17 +237,17 @@ def _get_batch_encdec(neox_args, keys, data, datatype):
 
         position_ids_enc = data_b['input_position_ids'].long()
         position_ids_dec = data_b['target_position_ids'].long().contiguous()
-
+        
         # Get the decoder self-attn mask and position ids.
         attention_mask, loss_mask = get_ltor_masks_and_position_ids(
-            data=labels,
+            data=tokens_dec,
             eod_token=neox_args.tokenizer.eod,
             eod_mask_loss=neox_args.eod_mask_loss,
             pad_token=neox_args.tokenizer.pad,
             pad_mask_loss=True,
             segment_ids=segment_ids_dec
         )
-
+        # print(segment_ids_dec, attention_mask, loss_mask, position_ids_dec, tokens_dec)
         enc_mask = make_segment_mask(segment_ids_enc, segment_ids_enc)
         enc_dec_mask = make_segment_mask(segment_ids_dec, segment_ids_enc)
         # TODO(Hailey): determine what size this enc attn mask should be. right now it's (1,1,1,enc_seq_length)
