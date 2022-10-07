@@ -85,7 +85,7 @@ def make_segment_mask(
     # should not attend to padding
     mask = mask & ((query[:, None, :, None] != 0) & (key[:, None, None, :] != 0))
     
-    return mask
+    return ~mask
 
 
 def get_full_mask(src_length, target_length, device):
@@ -153,7 +153,7 @@ def get_ltor_masks_and_position_ids(
         #    segment_ids != 0, segment_ids != 0, device=data.device
         #)
 
-        attention_mask = attention_mask.bool() & segment_mask.bool() #& padding_mask.bool()
+        attention_mask = attention_mask.bool() | segment_mask.bool()
 
         return attention_mask, loss_mask
     else:

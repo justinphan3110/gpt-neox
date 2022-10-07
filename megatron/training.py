@@ -221,7 +221,7 @@ def _get_batch_encdec(neox_args, keys, data, datatype):
     labels = data_b['target_tokens'].long()
 
     tokens_dec = torch.full(labels.size(), neox_args.tokenizer.pad, device=labels.device).contiguous()
-    tokens_dec[:, 1:] = labels[:, 1:].clone()
+    tokens_dec[:, 1:] = labels[:, :-1].clone()
 
     #labels = tokens_dec_[:, 1:].contiguous()
     #tokens_dec = tokens_dec_[:, :-1].contiguous()
@@ -240,7 +240,7 @@ def _get_batch_encdec(neox_args, keys, data, datatype):
         
         # Get the decoder self-attn mask and position ids.
         attention_mask, loss_mask = get_ltor_masks_and_position_ids(
-            data=tokens_dec,
+            data=labels,
             eod_token=neox_args.tokenizer.eod,
             eod_mask_loss=neox_args.eod_mask_loss,
             pad_token=neox_args.tokenizer.pad,
