@@ -843,7 +843,6 @@ class NeoXArgs(*BASE_CLASSES):
         self.update_values(
             {
                 # "save_iters": save_iters,
-                "save_iters": [],
             }
         )
 
