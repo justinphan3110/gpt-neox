@@ -31,17 +31,15 @@
   "mlp_type": "llama",
   "activation": "silu",
 
-  "train_batch_size": 1,
+  "train_micro_batch_size_per_gpu": 1,
   "gradient_accumulation_steps": 1,
 
 
   # optimizer settings
   "optimizer": {
-    "type": "Adam",
+    "type": "AdamW",
     "params": {
       "lr": 2.0e-5,
-      "betas": [0.9, 0.95],
-      "eps": 1.0e-8,
     }
   },
   # precision settings
