@@ -1,7 +1,7 @@
 {
 
-  "load": "/data/long_phan/llama_gptneox_weights/7B",
-  "save": "/data/long_phan/llama_gptneox_weights/7B",
+  # "load": "/data/long_phan/llama_gptneox_weights/7B",
+  "save": "/data/long_phan/llama_gptneox_weights/7B_tested/",
   "tokenizer-type": "SPMTokenizer",
   "vocab-file": "/data/long_phan/llama_gptneox_weights/tokenizer/tokenizer.model",
   "data-path": "alpaca_data/alpaca_text_data_text_document",
