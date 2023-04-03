@@ -76,7 +76,7 @@
 
 
   "zero_optimization": {
-    "stage": 1,
+    "stage": 2,
     "allgather_partitions": True,
     "allgather_bucket_size": 500000000,
     "overlap_comm": True,
