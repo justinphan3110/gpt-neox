@@ -85,6 +85,7 @@
     "contiguous_gradients": True,
   },
   "wall_clock_breakdown": false,
+  "finetune": true,
 
   # slurm
   # "launcher": "slurm",
