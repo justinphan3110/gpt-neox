@@ -32,7 +32,9 @@
   "activation": "silu",
 
   "train_batch_size": 1,
-  
+  "gradient_accumulation_steps": 1,
+
+
   # optimizer settings
   "optimizer": {
     "type": "Adam",
