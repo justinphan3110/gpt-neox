@@ -75,9 +75,8 @@
   "hidden-dropout": 0,
   "attention-dropout": 0,
 
-
   "zero_optimization": {
-    "stage": 3,
+    "stage": 1,
     "allgather_partitions": True,
     "allgather_bucket_size": 500000000,
     "overlap_comm": True,
@@ -85,5 +84,9 @@
     "reduce_bucket_size": 500000000,
     "contiguous_gradients": True,
   },
-    "wall_clock_breakdown": false
+  "wall_clock_breakdown": false
+
+  # slurm
+  "launcher": "slurm",
+  "deepspeed_slurm": true
 }
