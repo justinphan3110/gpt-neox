@@ -82,8 +82,6 @@
     "overlap_comm": True,
     "reduce_scatter": True,
     "reduce_bucket_size": "auto",
-            "stage3_max_live_parameters": 1e9,
-        "stage3_max_reuse_distance": 1e9,
     "contiguous_gradients": True,
   },
   "wall_clock_breakdown": false
