@@ -78,11 +78,12 @@
 
   "zero_optimization": {
     "stage": 3,
-    "allgather_bucket_size": "auto",
+    "allgather_partitions": True,
+    "allgather_bucket_size": 500000000,
     "overlap_comm": True,
     "reduce_scatter": True,
-    "reduce_bucket_size": "auto",
+    "reduce_bucket_size": 500000000,
     "contiguous_gradients": True,
   },
-  "wall_clock_breakdown": false
+    "wall_clock_breakdown": false
 }
