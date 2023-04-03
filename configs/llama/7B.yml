@@ -87,7 +87,7 @@
   "wall_clock_breakdown": false,
 
   # slurm
-  "launcher": "slurm",
-  "deepspeed_slurm": true,
+  # "launcher": "slurm",
+  # "deepspeed_slurm": true,
   "use_wandb": false,
 }
