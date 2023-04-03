@@ -88,5 +88,6 @@
 
   # slurm
   "launcher": "slurm",
-  "deepspeed_slurm": true
+  "deepspeed_slurm": true,
+  "use_wandb": false,
 }
