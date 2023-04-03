@@ -38,6 +38,7 @@
   # optimizer settings
   "optimizer": {
     "type": "Adam",
+    "adam_w_mode": true,
     "params": {
       "lr": 2.0e-5,
     }
@@ -76,7 +77,7 @@
 
 
   "zero_optimization": {
-    "stage": 2,
+    "stage": 3,
     "allgather_partitions": True,
     "allgather_bucket_size": 500000000,
     "overlap_comm": True,
