@@ -77,14 +77,16 @@
 
   # deepspeed
   "zero_optimization": {
-        "stage": 0,
-        "allgather_partitions": True,
-        "allgather_bucket_size": 500000000,
-        "overlap_comm": True,
-        "reduce_scatter": True,
-        "reduce_bucket_size": 500000000,
-        "contiguous_gradients": True,
-        "cpu_offload": False
-  },
-  "zero_allow_untested_optimizer": false,
+      "stage": 3,
+	    "overlap_comm": true,
+        "contiguous_gradients": true,
+        "sub_group_size": 1e9,
+        "reduce_bucket_size": "auto",
+        "stage3_prefetch_bucket_size": "auto",
+        "stage3_param_persistence_threshold": "auto",
+        "stage3_max_live_parameters": 1e9,
+        "stage3_max_reuse_distance": 1e9,
+        "stage3_gather_16bit_weights_on_model_save": true
+    },
+    "wall_clock_breakdown": false
 }
