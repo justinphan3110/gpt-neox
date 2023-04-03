@@ -76,7 +76,7 @@
   "attention-dropout": 0,
 
   "zero_optimization": {
-    "stage": 2,
+    "stage": 3,
     "allgather_partitions": True,
     "allgather_bucket_size": 500000000,
     "overlap_comm": True,
