@@ -86,6 +86,8 @@
   },
   "wall_clock_breakdown": false,
   "finetune": true,
+  "no_load_optim": true,
+  "no_load_rng": true,
 
   # slurm
   # "launcher": "slurm",
