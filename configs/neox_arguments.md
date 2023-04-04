@@ -111,7 +111,7 @@ Logging Arguments
 
 - **git_hash**: str
 
-    Default = 56b7427
+    Default = cbed1b5
 
     current git hash of repository
 
@@ -535,6 +535,18 @@ Model Arguments
 
 
 
+- **gpt_j_tied**: bool
+
+    Default = False
+
+    If false, we use
+      x = x + attn(ln1(x)) + mlp(ln2(x))
+    Otherwise, we tie the layer norms
+      y = ln(x)
+      x = x + attn(y) + mlp(y)
+
+
+
 - **soft_prompt_tuning**: dict
 
     Default = None
@@ -563,11 +575,12 @@ Optimizer Arguments
 
 
 
-- **optimizer_type**: typing.Literal['adam', 'onebitadam', 'cpu_adam', 'cpu_torch_adam', 'sm3', 'madgrad_wd']
+- **optimizer_type**: typing.Literal['adam', 'onebitadam', 'cpu_adam', 'cpu_torch_adam', 'sm3', 'madgrad_wd', 'sgd']
 
     Default = adam
 
-    Type of optimizer to use. Choose from ['adam', 'onebitadam', 'cpu_adam', 'cpu_torch_adam', 'sm3', 'madgrad_wd]
+    Type of optimizer to use. Choose from ['adam', 'onebitadam', 'cpu_adam', 'cpu_torch_adam', 'sm3', 'madgrad_wd', 'sgd']
+    NOTE: sgd will use MuSGD from Mup. Mup must be enabled for this optimizer.
 
 
 
@@ -579,7 +592,7 @@ Optimizer Arguments
 
 
 
-- **zero_stage**: int
+- **zero_stage**: typing.Union[int, typing.List[int], typing.Literal['all']]
 
     Default = None
 
@@ -737,6 +750,14 @@ Misc. Arguments
 
 
 
+- **deepspeed_slurm**: bool
+
+    Default = False
+
+    Run via SLURM, this will attempt to discover the necessary variables to initialize torch distributed from the SLURM environment
+
+
+
 - **user_script**: str
 
     Default = None
@@ -770,6 +791,14 @@ Misc. Arguments
 
 
 - **do_test**: int
+
+    Default = None
+
+    Set during training
+
+
+
+- **save_iters**: list
 
     Default = None
 
@@ -895,6 +924,15 @@ Text Generation arguments
 
 
 
+- **prompt_end**: str
+
+    Default = 
+
+
+    a single prompt's end. Defaults to newline
+
+
+
 - **sample_input_file**: str
 
     Default = None
@@ -930,7 +968,7 @@ Text Generation arguments
 
 - **eval_results_prefix**: str
 
-    Default =
+    Default = 
 
     prefix to which to save evaluation results - final fp will be {eval_results_prefix}_eval_results_yy-mm-dd-HH-MM.json
 
@@ -950,11 +988,11 @@ Tokenizer Arguments
 
 
 
-- **tokenizer_type**: typing.Literal['GPT2BPETokenizer', 'HFTokenizer', 'HFGPT2Tokenizer', 'SPMTokenizer', 'CharLevelTokenizer']
+- **tokenizer_type**: typing.Literal['GPT2BPETokenizer', 'HFTokenizer', 'HFGPT2Tokenizer', 'SPMTokenizer', 'CharLevelTokenizer', 'TiktokenTokenizer']
 
     Default = GPT2BPETokenizer
 
-    Type of tokenizer to use - should be one of ["GPT2BPETokenizer", "HFTokenizer", "HFGPT2Tokenizer", "SPMTokenizer", "CharLevelTokenizer"]
+    Type of tokenizer to use - should be one of ["GPT2BPETokenizer", "HFTokenizer", "HFGPT2Tokenizer", "SPMTokenizer", "CharLevelTokenizer", "TiktokenTokenizer"]
 
 
 
@@ -978,6 +1016,15 @@ Training Arguments
     Default = None
 
     Path to combined dataset to split.
+
+
+
+- **use_shared_fs**: bool
+
+    Default = True
+
+    Whether to use a shared filesystem for data loading. If False, local rank 0 on all nodes will preprocess the data,
+    otherwise only global rank 0 will preprocess the data. This is implemented in megatron/data/gpt2_dataset.py::_build_index_mappings.
 
 
 
@@ -1112,11 +1159,37 @@ Training Arguments
 
 
 
-- **save_interval**: int
+- **checkpoint_scale**: typing.Literal['linear', 'log']
+
+    Default = linear
+
+    How step at which checkpoints are saved should scale. "linear" implies 1 checkpoint will be saved at every multiple of `checkpoint-factor`,
+    while "log" implies that the number of steps between each checkpoint will be multiplied by `checkpoint-factor` at each step, starting from step 1.
+
+
+
+- **checkpoint_factor**: int
 
     Default = None
 
-    Number of iterations between checkpoint saves.
+    Acts as a multiplier on either the "log" or "linear" checkpoint spacing.
+
+    With `checkpoint-scale="linear"`, `checkpoint-factor=20`, and `train-iters=100`, checkpoints will be saved at
+    steps [20, 40, 60, 80, 100].
+
+    With `checkpoint-scale="log"`, `checkpoint-factor=2`, and `train-iters=100`, checkpoints will be saved at
+    steps [1, 2, 4, 8, 16, 32, 64, 100].
+
+    Note that the last checkpoint step is always saved.
+
+
+
+- **extra_save_iters**: list
+
+    Default = None
+
+    Additional iterations when a checkpoint should be saved.
+    Must be a list of ints or `None`.
 
 
 
@@ -1394,6 +1467,87 @@ Training Arguments
 
 
 
+- **use_mup**: bool
+
+    Default = False
+
+    Whether to use Microsoft's Mup https://github.com/microsoft/mup
+
+
+
+- **coord_check**: bool
+
+    Default = False
+
+    Whether to generate a "coord check" plot to verify mup's implementation in neox
+
+
+
+- **save_base_shapes**: bool
+
+    Default = False
+
+    Whether to save base shapes for mup. This will save the shapes to the path specified in base-shapes-file.
+
+
+
+- **base_shapes_file**: str
+
+    Default = None
+
+    Path to the base shapes to save to/load from
+
+
+
+- **mup_init_scale**: float
+
+    Default = 1.0
+
+    Initialization scale: All the parameters are multiplied by this value
+
+
+
+- **mup_attn_temp**: float
+
+    Default = 1.0
+
+    Attention temperature: Reciprocal of the multiplier applied to the input to attention softmax
+
+
+
+- **mup_output_temp**: float
+
+    Default = 1.0
+
+    Output temperature: Reciprocal of the multiplier applied to the input to softmax that
+    produces the distribution over output tokens.
+
+
+
+- **mup_embedding_mult**: float
+
+    Default = 1.0
+
+    Scalar by which we multiply the output of the embedding layer
+
+
+
+- **mup_rp_embedding_mult**: float
+
+    Default = 1.0
+
+    Scalar by which we multiply vectors representing relative position
+
+
+
+- **mup_width_scale**: int
+
+    Default = 2
+
+    What to scale width by when creating the delta model for mup
+
+
+
 ## NeoXArgsDeepspeedConfig
 
 Args for deepspeed config
@@ -1518,7 +1672,23 @@ Args for deepspeed config
 
     Default = None
 
+    
 
+
+
+- **curriculum_learning**: dict
+
+    Default = None
+
+    
+
+
+
+- **curriculum_seqlen**: int
+
+    Default = 0
+
+    Internal var for tracking the current seqlen
 
 
 
@@ -1559,6 +1729,14 @@ Args for deepspeed config
     Default = False
 
     Whether Deepspeed Zero Optimizer will allow an optimizer that hasn't been tested by the deepspeed team
+
+
+
+- **autotuning**: dict
+
+    Default = None
+
+    Dictionary as described in DeepSpeed autotuning documentation: https://github.com/microsoft/DeepSpeed/tree/master/deepspeed/autotuning
 
 
 
@@ -1631,7 +1809,7 @@ Args for deepspeed runner (deepspeed.launcher.runner).
 
 
 
-- **launcher**: str
+- **launcher**: typing.Literal['pdsh', 'openmpi', 'mvapich', 'slurm']
 
     Default = pdsh
 
@@ -1644,3 +1822,34 @@ Args for deepspeed runner (deepspeed.launcher.runner).
     Default = False
 
     If true, autodetects nvlink pairs and remaps cuda visible devices to place them next to each other. This is an Eleuther addition to deepspeed, and should speed up model parallel training on setups with nvlink pairs when mp=2.
+
+
+
+- **autotuning_run**: str
+
+    Default = None
+
+    Either "tune", "run", or `None`.
+    
+- **no_ssh_check**: bool
+
+    Default = False
+
+    If true, overrides the default check where DeepSpeed confirms that the headnode is accessible via ssh.
+
+
+
+- **comment**: str
+
+    Default = None
+
+    Adds a `--comment` to the DeepSpeed launch command. In DeeperSpeed this is passed on to the SlurmLauncher as well. Sometime necessary for cluster rules, or so I've heard.
+
+
+
+- **no_ssh_check**: bool
+
+    Default = False
+
+    If `True` and running with multiple nodes, then DeepSpeedd doesn't conduct a check to ensure the head node is reachable with ssh.
+

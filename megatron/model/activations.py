@@ -1,3 +1,6 @@
+# Copyright (c) 2021, EleutherAI
+# This file is based on code by the authors denoted below and has been modified from its original version.
+#
 # Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,6 +45,8 @@ def get_activation(neox_args):
         activation_func = swish
     elif neox_args.activation == "mish":
         activation_func = mish
+    elif neox_args.activation == "silu":
+        activation_func = F.silu
     else:
         raise ValueError(f"Activation function {neox_args.activation} not recognized")
     return activation_func

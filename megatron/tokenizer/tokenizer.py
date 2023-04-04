@@ -1,4 +1,4 @@
-# Copyright (c) 2021, EleutherAI contributors
+# Copyright (c) 2021, EleutherAI
 # This file is based on code by the authors denoted below and has been modified from its original version.
 #
 # Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
@@ -52,6 +52,9 @@ def build_tokenizer(args):
         tokenizer = HFGPT2Tokenizer(args.vocab_file)
     elif args.tokenizer_type.lower() == "CharLevelTokenizer".lower():
         tokenizer = CharLevelTokenizer(vocab_size=512)
+    elif args.tokenizer_type.lower() == "TiktokenTokenizer".lower():
+        assert args.vocab_file is not None
+        tokenizer = TiktokenTokenizer(args.vocab_file)
     else:
         raise NotImplementedError(
             "{} tokenizer is not " "implemented.".format(args.tokenizer_type)
@@ -224,7 +227,6 @@ class HFTokenizer(AbstractTokenizer):
     def __init__(self, vocab_file):
         name = "HFTokenizer"
         super().__init__(name)
-
         self.tokenizer = Tokenizer.from_file(vocab_file)
         self.eod_id = self.tokenizer.token_to_id("<|endoftext|>")
         self.pad_id = self.tokenizer.token_to_id("<|padding|>")
@@ -345,3 +347,52 @@ class CharLevelTokenizer(AbstractTokenizer):
     @property
     def eod(self):
         return self.eod_id
+
+
+class TiktokenTokenizer(AbstractTokenizer):
+    """Tokenizer from OpenAI's tiktoken implementation"""
+    try:
+        import tiktoken
+    except ModuleNotFoundError:
+        print("Please install tiktoken: (https://github.com/openai/tiktoken)")
+        raise Exception
+
+    def __init__(self, vocab_file):
+        name = "TiktokenTokenizer"
+        super().__init__(name)
+
+        self.tokenizer = tiktoken.get_encoding(vocab_file)
+        self.eod_id = self.tokenizer.eot_token
+        self.pad_id = None
+
+    @property
+    def vocab_size(self):
+        return self.tokenizer.n_vocab
+
+    @property
+    def vocab(self):
+        raise NotImplementedError("TiktokenTokenizer does not implement vocabulary access.")
+
+    @property
+    def inv_vocab(self):
+        raise NotImplementedError("TiktokenTokenizer does not implement vocabulary access. \
+                To get the idx-th token in vocabulary, use tokenizer.decode([idx]) .")
+
+    def tokenize(self, text: str):
+        return self.tokenizer.encode(text) #,  allowed_special="all")
+
+    def tokenize_batch(self, text_batch: List[str]):
+        return self.tokenizer.encode_batch(text_batch, allowed_special="all")
+
+    def detokenize(self, token_ids):
+        return self.tokenizer.decode(tokens=token_ids, errors="strict")
+
+    @property
+    def eod(self):
+        return self.eod_id
+
+    @property
+    def pad(self):
+        raise NotImplementedError
+
+

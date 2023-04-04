@@ -1,0 +1,95 @@
+{
+
+  "load": "/data/long_phan/llama_gptneox_weights/7B/",
+  "save": "/data/long_phan/llama_gptneox_weights/7B_tested/",
+  "tokenizer-type": "SPMTokenizer",
+  "vocab-file": "/data/long_phan/llama_gptneox_weights/tokenizer/tokenizer.model",
+  "data-path": "alpaca_data/alpaca_text_data_text_document",
+
+
+  "pipe-parallel-size": 1,
+  "model-parallel-size": 1,
+  "make_vocab_size_divisible_by": 1,
+  # model settings
+  "num-layers": 32,
+  "hidden-size": 4096,
+  "num-attention-heads": 32,
+  "seq-length": 2048,
+  "max-position-embeddings": 2048,
+  "pos-emb": "rotary",
+  "rotary-pct": 1,
+  "no-weight-tying": true,
+  "gpt-j-residual": false,
+  "output-layer-parallelism": "column",
+  "norm": "rmsnorm",
+  "rms_norm_epsilon": 1.0e-6,
+
+  "scaled-upper-triang-masked-softmax-fusion": true,
+  "bias-gelu-fusion": false,
+  "use_bias_in_norms": false,
+  "use_bias_in_attn_linear": false,
+  "mlp_type": "llama",
+  "activation": "silu",
+
+  "train_micro_batch_size_per_gpu": 1,
+  "gradient_accumulation_steps": 1,
+
+
+  # optimizer settings
+  "optimizer": {
+    "type": "Adam",
+    "adam_w_mode": true,
+    "params": {
+      "lr": 2.0e-5,
+    }
+  },
+  # precision settings
+  "fp16": {
+    "enabled": true,
+    "loss_scale": 0,
+    "loss_scale_window": 1000,
+    "hysteresis": 2,
+    "min_loss_scale": 1
+  },
+
+  # misc. training settings
+  "train-iters": 50000,
+  "lr-decay-iters": 50000,
+  "distributed-backend": "nccl",
+  "lr-decay-style": "cosine",
+  "warmup": 0.00,
+  "checkpoint-factor": 10000,
+  "eval-interval": 1000,
+  "eval-iters": 10,
+
+  # logging
+  "log-interval": 100,
+  "steps_per_print": 10,
+  "keep-last-n-checkpoints": 2,
+  "wall_clock_breakdown": true,
+
+  # regularization
+  "gradient_clipping": 1.0,
+  "weight-decay": 0.1,
+  "hidden-dropout": 0,
+  "attention-dropout": 0,
+
+  "zero_optimization": {
+    "stage": 0,
+    "allgather_partitions": True,
+    "allgather_bucket_size": 500000000,
+    "overlap_comm": True,
+    "reduce_scatter": True,
+    "reduce_bucket_size": 500000000,
+    "contiguous_gradients": True,
+  },
+  "wall_clock_breakdown": false,
+  "finetune": true,
+  "no_load_optim": true,
+  "no_load_rng": true,
+
+  # slurm
+  # "launcher": "slurm",
+  # "deepspeed_slurm": true,
+  "use_wandb": true,
+}

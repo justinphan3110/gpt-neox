@@ -1,3 +1,17 @@
+# Copyright (c) 2021, EleutherAI
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import torch
 import math
 from torch.nn.parameter import Parameter
@@ -36,6 +50,9 @@ class Embedding(torch.nn.Module):
         self.hidden_size = hidden_size
         self.init_method = init_method
         self.num_tokentypes = num_tokentypes
+        self.use_mup = neox_args.use_mup
+        self.mup_embedding_mult = neox_args.mup_embedding_mult
+        self.mup_rp_embedding_mult = neox_args.mup_rp_embedding_mult
 
         # Word embeddings (parallel).
         self.word_embeddings = mpu.VocabParallelEmbedding(
@@ -118,15 +135,14 @@ class Embedding(torch.nn.Module):
         # Embeddings.
         words_embeddings = self.word_embeddings(input_ids)
         if self.use_pos_emb and self.embedding_type in ["learned", "sinusoidal"]:
-            if self.layer_past is not None:
-                position_ids = position_ids + self.layer_past + 1
-
-            self.layer_past = position_ids[:, -1]
-
-            # OPT always adds 2 for some reason, according to the HF implementation
             if self.opt_pos_emb_offset:
+                if self.layer_past is not None:
+                    position_ids = position_ids + self.layer_past + 1
+                self.layer_past = position_ids[:, -1]
+                # OPT always adds 2 for some reason, according to the HF implementation
                 position_ids = position_ids + self.opt_pos_emb_offset
             position_embeddings = self.position_embeddings(position_ids)
+            position_embeddings.mul_(self.mup_rp_embedding_mult)
             embeddings = words_embeddings + position_embeddings
         else:
             embeddings = words_embeddings
@@ -138,6 +154,11 @@ class Embedding(torch.nn.Module):
 
         # Dropout.
         embeddings = self.embedding_dropout(embeddings)
+
+        if self.use_mup:
+            with torch.no_grad():
+                embeddings.mul_(self.mup_embedding_mult)
+
         return embeddings
 
 

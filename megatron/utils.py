@@ -1,4 +1,4 @@
-# Copyright (c) 2021 Josh Levy-Kramer <josh@levykramer.co.uk>.
+# Copyright (c) 2021, EleutherAI
 # This file is based on code by the authors denoted below and has been modified from its original version.
 #
 # Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
@@ -24,8 +24,11 @@ import socket
 from typing import Dict, List
 
 import requests
-import wandb
-from wandb import UsageError
+
+try:
+    import wandb
+except ModuleNotFoundError:
+    pass
 
 import torch
 
@@ -33,7 +36,7 @@ from deepspeed.launcher.runner import fetch_hostfile, parse_inclusion_exclusion
 
 from megatron import print_rank_0
 from megatron import mpu
-from deepspeed import PipelineEngine, DeepSpeedEngine
+
 from collections import deque
 
 
@@ -167,7 +170,7 @@ def init_wandb(neox_args):
                 force=False,
                 entity=neox_args.wandb_team,
             )
-        except UsageError as e:
+        except wandb.UsageError as e:
             neox_args.update_value("use_wandb", False)
             print(e)
             print(
@@ -414,7 +417,7 @@ def setup_for_inference_or_eval(
     from megatron.neox_arguments import NeoXArgs
     from megatron.initialize import initialize_megatron
     from megatron.training import setup_model_and_optimizer
-    
+
     _overwrite_values = {
         "checkpoint_activations": False,
         "partition_activations": False,

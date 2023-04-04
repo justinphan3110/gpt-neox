@@ -1,3 +1,17 @@
+# Copyright (c) 2021, EleutherAI
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import subprocess
 from dataclasses import dataclass
 
@@ -7,9 +21,10 @@ except ImportError:
     from template import NeoXArgsTemplate
 
 try:
-    from typing import Literal
+    from typing import List, Literal, Union
 except ImportError:
-    from typing_extensions import Literal
+    from typing_extensions import List, Literal, Union
+
 
 ATTENTION_TYPE_CHOICES = [
     "global",
@@ -20,6 +35,7 @@ ATTENTION_TYPE_CHOICES = [
     "bslongformer",
     "gmlp",
     "amlp",
+    "flash",
 ]
 
 
@@ -212,9 +228,9 @@ class NeoXArgsModel(NeoXArgsTemplate):
     Pad the vocab size to be divisible by this value. This is added for computational efficiency reasons.
     """
 
-    activation: Literal["gelu", "geglu", "relu", "softsign", "swish", "mish"] = "gelu"
+    activation: Literal["gelu", "geglu", "relu", "softsign", "swish", "mish", "silu"] = "gelu"
     """
-    Activation function to use - choose from ["gelu", "geglu", "relu", "softsign", "swish", "mish"]
+    Activation function to use - choose from ["gelu", "geglu", "relu", "softsign", "swish", "mish", "silu"]
     """
 
     scaled_upper_triang_masked_softmax_fusion: bool = False
@@ -318,6 +334,35 @@ class NeoXArgsModel(NeoXArgsTemplate):
       x = x + attn(x) + mlp(x)
     """
 
+    gpt_j_tied: bool = False
+    """
+    If false, we use
+      x = x + attn(ln1(x)) + mlp(ln2(x))
+    Otherwise, we tie the layer norms
+      y = ln(x)
+      x = x + attn(y) + mlp(y)
+    """
+
+    use_bias_in_norms: bool = True
+    """
+    If false, norms (e.g. LayerNorm) will not have bias terms
+    """
+    use_bias_in_attn_linear: bool = True
+    """
+    If false, attn_linear (e.g. QKVO) will not have bias terms
+    """
+
+    mlp_type: str = "regular"
+    """
+    Types:
+        regular: Megatron implementation
+        llama: LLaMA MLP
+    """
+    llama_mlp_multiple_of: int = 256
+    """
+    LLaMA MLP sizes are padded to a nice number
+    """
+
     soft_prompt_tuning: dict = None
     """
     Dictionary configuring the soft prompt tuning parameters.
@@ -343,10 +388,11 @@ class NeoXArgsOptimizer(NeoXArgsTemplate):
     """
 
     optimizer_type: Literal[
-        "adam", "onebitadam", "cpu_adam", "cpu_torch_adam", "sm3", "madgrad_wd"
+        "adam", "onebitadam", "cpu_adam", "cpu_torch_adam", "sm3", "madgrad_wd", "sgd"
     ] = "adam"
     """
-    Type of optimizer to use. Choose from ['adam', 'onebitadam', 'cpu_adam', 'cpu_torch_adam', 'sm3', 'madgrad_wd]
+    Type of optimizer to use. Choose from ['adam', 'onebitadam', 'cpu_adam', 'cpu_torch_adam', 'sm3', 'madgrad_wd', 'sgd']
+    NOTE: sgd will use MuSGD from Mup. Mup must be enabled for this optimizer.
     """
 
     use_bnb_optimizer: bool = False
@@ -354,7 +400,7 @@ class NeoXArgsOptimizer(NeoXArgsTemplate):
     Whether to enable the bitsandbytes optimizers
     """
 
-    zero_stage: int = None
+    zero_stage: Union[int, List[int], Literal["all"]] = None
     """
     Zero Optimizer stage
     """
@@ -611,6 +657,11 @@ class NeoXArgsOther(NeoXArgsTemplate):
     Set during training
     """
 
+    save_iters: list = None
+    """
+    Set during training
+    """
+
     global_num_gpus: int = None
     """
     Set during launching
@@ -629,9 +680,10 @@ class NeoXArgsTokenizer(NeoXArgsTemplate):
         "HFGPT2Tokenizer",
         "SPMTokenizer",
         "CharLevelTokenizer",
+        "TiktokenTokenizer",
     ] = "GPT2BPETokenizer"
     """
-    Type of tokenizer to use - should be one of ["GPT2BPETokenizer", "HFTokenizer", "HFGPT2Tokenizer", "SPMTokenizer", "CharLevelTokenizer"]
+    Type of tokenizer to use - should be one of ["GPT2BPETokenizer", "HFTokenizer", "HFGPT2Tokenizer", "SPMTokenizer", "CharLevelTokenizer", "TiktokenTokenizer"]
     """
 
     padded_vocab_size: int = None
@@ -655,6 +707,12 @@ class NeoXArgsTraining(NeoXArgsTemplate):
     data_path: str = None
     """
     Path to combined dataset to split.
+    """
+
+    use_shared_fs: bool = True
+    """
+    Whether to use a shared filesystem for data loading. If False, local rank 0 on all nodes will preprocess the data,
+    otherwise only global rank 0 will preprocess the data. This is implemented in megatron/data/gpt2_dataset.py::_build_index_mappings.
     """
 
     train_data_paths: list = None
@@ -746,9 +804,29 @@ class NeoXArgsTraining(NeoXArgsTemplate):
     save input and output of a forward pass with the checkpoint and validate after load
     """
 
-    save_interval: int = None
+    checkpoint_scale: Literal["linear", "log"] = "linear"
     """
-    Number of iterations between checkpoint saves.
+    How step at which checkpoints are saved should scale. "linear" implies 1 checkpoint will be saved at every multiple of `checkpoint-factor`,
+    while "log" implies that the number of steps between each checkpoint will be multiplied by `checkpoint-factor` at each step, starting from step 1.
+    """
+
+    checkpoint_factor: int = None
+    """
+    Acts as a multiplier on either the "log" or "linear" checkpoint spacing.
+
+    With `checkpoint-scale="linear"`, `checkpoint-factor=20`, and `train-iters=100`, checkpoints will be saved at
+    steps [20, 40, 60, 80, 100].
+
+    With `checkpoint-scale="log"`, `checkpoint-factor=2`, and `train-iters=100`, checkpoints will be saved at
+    steps [1, 2, 4, 8, 16, 32, 64, 100].
+
+    Note that the last checkpoint step is always saved.
+    """
+
+    extra_save_iters: list = None
+    """
+    Additional iterations when a checkpoint should be saved.
+    Must be a list of ints or `None`.
     """
 
     no_save_optim: bool = False
@@ -921,6 +999,57 @@ class NeoXArgsTraining(NeoXArgsTemplate):
     Whether to calculate character level perplexity as well as token level perplexity. (may incur a time cost)
     """
 
+    use_mup: bool = False
+    """
+    Whether to use Microsoft's Mup https://github.com/microsoft/mup
+    """
+
+    coord_check: bool = False
+    """
+    Whether to generate a "coord check" plot to verify mup's implementation in neox
+    """
+
+    save_base_shapes: bool = False
+    """
+    Whether to save base shapes for mup. This will save the shapes to the path specified in base-shapes-file.
+    """
+
+    base_shapes_file: str = None
+    """
+    Path to the base shapes to save to/load from
+    """
+
+    mup_init_scale: float = 1.0
+    """
+    Initialization scale: All the parameters are multiplied by this value
+    """
+
+    mup_attn_temp: float = 1.0
+    """
+    Attention temperature: Reciprocal of the multiplier applied to the input to attention softmax
+    """
+
+    mup_output_temp: float = 1.0
+    """
+    Output temperature: Reciprocal of the multiplier applied to the input to softmax that
+    produces the distribution over output tokens.
+    """
+
+    mup_embedding_mult: float = 1.0
+    """
+    Scalar by which we multiply the output of the embedding layer
+    """
+
+    mup_rp_embedding_mult: float = 1.0
+    """
+    Scalar by which we multiply vectors representing relative position
+    """
+
+    mup_width_scale: int = 2
+    """
+    What to scale width by when creating the delta model for mup
+    """
+
 
 @dataclass
 class NeoXArgsTextgen(NeoXArgsTemplate):
@@ -957,6 +1086,11 @@ class NeoXArgsTextgen(NeoXArgsTemplate):
     maximum_tokens: int = 64
     """
     maximum number of tokens to be generated
+    """
+
+    prompt_end: str = "\n"
+    """
+    a single prompt's end. Defaults to newline
     """
 
     sample_input_file: str = None

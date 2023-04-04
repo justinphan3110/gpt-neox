@@ -1,4 +1,4 @@
-# Copyright (c) 2021, EleutherAI contributors
+# Copyright (c) 2021, EleutherAI
 # This file is based on code by the authors denoted below and has been modified from its original version.
 #
 # Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
@@ -29,8 +29,6 @@ from megatron.mpu import set_model_parallel_rank, set_model_parallel_world_size
 
 import deepspeed
 import inspect
-
-from deepspeed.utils import distributed
 
 
 def initialize_megatron(neox_args, allow_no_cuda=False):
@@ -148,7 +146,7 @@ def _initialize_distributed(neox_args):
                 neox_args.local_rank = device
             torch.cuda.set_device(device)
 
-        distributed.init_distributed(
+        deepspeed.init_distributed(
             dist_backend=neox_args.distributed_backend,
             auto_mpi_discovery=True,
             distributed_port=os.getenv("MASTER_PORT", "6000"),

@@ -1,9 +1,28 @@
+# Copyright (c) 2021, EleutherAI
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from dataclasses import dataclass
 
 try:
     from .template import NeoXArgsTemplate
 except ImportError:
     from template import NeoXArgsTemplate
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 
 @dataclass
@@ -88,6 +107,14 @@ class NeoXArgsDeepspeedConfig(NeoXArgsTemplate):
     zero_optimization: dict = None
     """"""
 
+    curriculum_learning: dict = None
+    """"""
+
+    curriculum_seqlen: int = 0
+    """
+    Internal var for tracking the current seqlen
+    """
+
     steps_per_print: int = 10
     """
     Print train loss every N steps.
@@ -112,6 +139,9 @@ class NeoXArgsDeepspeedConfig(NeoXArgsTemplate):
     """
     Whether Deepspeed Zero Optimizer will allow an optimizer that hasn't been tested by the deepspeed team
     """
+
+    autotuning: dict = None
+    """Dictionary as described in DeepSpeed autotuning documentation: https://github.com/microsoft/DeepSpeed/tree/master/deepspeed/autotuning"""
 
 
 @dataclass
@@ -162,7 +192,7 @@ class NeoXArgsDeepspeedRunner(NeoXArgsTemplate):
     IP address of node 0, will be inferred via 'hostname -I' if not specified.
     """
 
-    launcher: str = "pdsh"
+    launcher: Literal["pdsh", "openmpi", "mvapich", "slurm"] = "pdsh"
     """
     Launcher backend for multi-node training. Options currently include PDSH, OpenMPI, MVAPICH.
     """
@@ -172,7 +202,22 @@ class NeoXArgsDeepspeedRunner(NeoXArgsTemplate):
     If true, autodetects nvlink pairs and remaps cuda visible devices to place them next to each other. This is an Eleuther addition to deepspeed, and should speed up model parallel training on setups with nvlink pairs when mp=2.
     """
 
-    slurm_comment: str = None
+    autotuning_run: str = None
     """
-    If using SLURM launcher adds a `--comment` to the srun command that launches the job. Sometimes necessary for cluster rules, or so I've heard.
+    Either "tune", "run", or `None`.
+    """
+
+    no_ssh_check: bool = False
+    """
+    If true, overrides the default check where DeepSpeed confirms that the headnode is accessible via ssh.
+    """
+
+    comment: str = None
+    """
+    Adds a `--comment` to the DeepSpeed launch command. In DeeperSpeed this is passed on to the SlurmLauncher as well. Sometime necessary for cluster rules, or so I've heard.
+    """
+
+    no_ssh_check: bool = False
+    """
+    If `True` and running with multiple nodes, then DeepSpeedd doesn't conduct a check to ensure the head node is reachable with ssh.
     """

@@ -6,6 +6,7 @@
 
   # Params for all
   "maximum_tokens": 102,
+  "prompt_end": "\n",
   "temperature": 1.0,
   "top_p": 0.0,
   "top_k": 0,
@@ -17,4 +18,9 @@
   # input/output file
   "sample-input-file": "sample_input.txt",
   "sample-output-file": "sample_output.txt",
+
+
+  "tokenizer-type": "SPMTokenizer",
+  "vocab-file": "/data/long_phan/llama_gptneox_weights/tokenizer/tokenizer.model",
+  "data-path": "alpaca_data/alpaca_text_data_text_document",
 }
