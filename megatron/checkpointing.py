@@ -236,6 +236,9 @@ def load_checkpoint(
             tag = f"global_step{iteration}"
         else:
             tag = None
+        
+        print("load_optim_and_scheduler", load_optim_and_scheduler)
+        assert False
         checkpoint_name, state_dict = model.load_checkpoint(
             neox_args.load,
             load_optimizer_states=load_optim_and_scheduler,
