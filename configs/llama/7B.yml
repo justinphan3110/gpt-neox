@@ -53,6 +53,10 @@
     "min_loss_scale": 1
   },
 
+  "bf16": {
+    "enabled": false,
+  }
+
   # misc. training settings
   "train-iters": 320000,
   "lr-decay-iters": 320000,
@@ -76,7 +80,7 @@
   "attention-dropout": 0,
 
   "zero_optimization": {
-    "stage": 1,
+    "stage": 3,
     "allgather_partitions": True,
     "allgather_bucket_size": 500000000,
     "overlap_comm": True,
