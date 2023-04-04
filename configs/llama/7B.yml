@@ -55,7 +55,7 @@
 
   "bf16": {
     "enabled": false
-  }
+  },
 
   # misc. training settings
   "train-iters": 320000,
