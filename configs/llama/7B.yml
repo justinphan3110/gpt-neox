@@ -57,7 +57,7 @@
   "lr-decay-iters": 320000,
   "distributed-backend": "nccl",
   "lr-decay-style": "cosine",
-  "warmup": 0.01,
+  "warmup": 0.00,
   "checkpoint-factor": 10000,
   "eval-interval": 1000,
   "eval-iters": 10,
@@ -75,7 +75,7 @@
   "attention-dropout": 0,
 
   "zero_optimization": {
-    "stage": 1,
+    "stage": 0,
     "allgather_partitions": True,
     "allgather_bucket_size": 500000000,
     "overlap_comm": True,
