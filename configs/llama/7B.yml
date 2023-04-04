@@ -1,6 +1,6 @@
 {
 
-  "load": "/data/long_phan/llama_gptneox_weights/7B",
+  "load": "/data/long_phan/llama_gptneox_weights/7B/global_step0/",
   "save": "/data/long_phan/llama_gptneox_weights/7B_tested/",
   "tokenizer-type": "SPMTokenizer",
   "vocab-file": "/data/long_phan/llama_gptneox_weights/tokenizer/tokenizer.model",
