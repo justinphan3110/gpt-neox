@@ -53,8 +53,8 @@
   },
 
   # misc. training settings
-  "train-iters": 320000,
-  "lr-decay-iters": 320000,
+  "train-iters": 50000,
+  "lr-decay-iters": 50000,
   "distributed-backend": "nccl",
   "lr-decay-style": "cosine",
   "warmup": 0.00,
@@ -65,7 +65,7 @@
   # logging
   "log-interval": 100,
   "steps_per_print": 10,
-  "keep-last-n-checkpoints": 4,
+  "keep-last-n-checkpoints": 2,
   "wall_clock_breakdown": true,
 
   # regularization
