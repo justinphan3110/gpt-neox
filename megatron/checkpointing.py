@@ -238,7 +238,8 @@ def load_checkpoint(
             tag = None
         
         print("load_optim_and_scheduler", load_optim_and_scheduler)
-        assert False
+
+        assert not load_optim_and_scheduler 
         checkpoint_name, state_dict = model.load_checkpoint(
             neox_args.load,
             load_optimizer_states=load_optim_and_scheduler,
