@@ -54,7 +54,7 @@
   },
 
   "bf16": {
-    "enabled": false,
+    "enabled": false
   }
 
   # misc. training settings
